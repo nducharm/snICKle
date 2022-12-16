@@ -10,4 +10,4 @@ class GUI:      # we do everything inside a class to make it easier for GUI elem
 
         self.root.mainloop()                                    # render the root Tk window
 
-GUI()
+GUI()       # instantiating GUI object constructs Tk window via __init__
