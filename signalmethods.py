@@ -5,10 +5,10 @@ def main():
 
     frequencies = [82.41, 123.47, 164.81, 207.65, 246.94, 329.64]    # Hz
     sampling_rate = 44_100    # Hz
-    duration = 2    # seconds
+    duration = 5    # seconds
 
-    times = np.linspace(0, duration, sampling_rate * duration)
-    waveform = np.zeros(sampling_rate * duration * 4)
+    times = np.linspace(0, duration, sampling_rate * duration)      # sample times
+    waveform = np.zeros(sampling_rate * duration)               # vector to hold cosine wave
 
     for frequency in frequencies:
         waveform += 2500 * np.cos(times * frequency * 2 * np.pi)
