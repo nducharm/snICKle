@@ -1,16 +1,38 @@
 import numpy as np
+
 from scipy import signal
 from scipy.io import wavfile
+
 
 class GuitarEffects:
 
     def uniform_distortion(self, input: np.array) -> np.array:
-        """ Distort input signal by convolving against a uniform distribution. """
+        """ Convolution filter against a uniform distribution. """
         dist = np.full(1000, 0.001)
         return signal.oaconvolve(input, dist)
 
     def gaussian_distortion(self, input: np.array) -> np.array:
-        """ Distort input signal by convolving against a gaussian distribution. """
+        """ Convolution filter against a gaussian distribution. """
+        pass
+
+    def fuzz_distortion(self, input: np.array) -> np.array:
+        """ Nonlinear filter simulating an analog fuzz effect. """
+        pass
+
+    def overdrive_distortion(self, input: np.array) -> np.array:
+        """ Filter simulating the effect of an overdriven tube amp. """
+        pass
+
+    def phaser(self, input: np.array) -> np.array:
+        pass
+
+    def delay(self, input: np.array) -> np.array:
+        pass
+
+    def reverb(self, input: np.array) -> np.array:
+        pass
+    
+    def chorus(self, input: np.array) -> np.array:
         pass
 
 def main():
