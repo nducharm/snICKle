@@ -1,41 +1,55 @@
 import tkinter as tk
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-# from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 
 import numpy as np
 
+import sounddevice as sd
+
+
+sampling_rate = 44_100      # sampling rate should be globally constant
+
+sd.default.samplerate = sampling_rate       # set sounddevice defaults for recording and playback
+sd.default.channels = 1
 
 class GUI:
 
-    def __init__(self) -> None:
+    def __init__(self) -> None:     # GUI code all lives inside the init method except starting mainloop
         self.root = tk.Tk()
-        self.frames = {}
-        self.buttons = {}
+        t = np.linspace(0, 4, 4 * sampling_rate)
+        self.signal = np.cos(2 * np.pi * t * 342)
 
-    def set_params(self) -> None:
-        self.root.geometry("1000x800")
-        self.root.title("Snickle")
-        self.root.protocol("WM_DELETE_WINDOW", self._quit)      # set exit window protocol to _quit (kill mainloop and end program)
+        self.root.title('SNICKLE')
+        
+        self.root.protocol('WM_DELETE_WINDOW', self._quit)      # set exit window button cmd to _quit (kill mainloop and end program)
 
-    def create_widgets(self) -> None:
-        fig = self._plot_waveform()
-        self.display = FigureCanvasTkAgg(fig, master=self.root)      # widget to display a graphic of a waveform
-        self.display.draw
+        self._plot_waveform()
 
-    def pack_widgets(self) -> None:
-        self.display.get_tk_widget().pack(      # create and pack a widget for the figure canvas
-            side=tk.TOP,
-            fill=tk.BOTH,
-            expand=True
-        )
+        self.plot_button = tk.Button(self.root, text='PLOT', command=self._plot_waveform)
+        self.plot_button.pack()
+
+        self.record_button = tk.Button(self.root, text='RECORD', command=self._record)
+        self.record_button.pack()
+
+        self.play_button = tk.Button(self.root, text='PLAY', command=self._play)
+        self.play_button.pack()
 
     def _quit(self) -> None:        # ensures the mainloop is killed and the program ends
         self.root.quit()            # kills mainloop
         self.root.destroy()         # necessary on windows or wsl when using matplotlib
 
-    def _plot_waveform(self):
+    def _record(self) -> None:
+        signal_in = sd.rec(4)
+        sd.wait()
+        self.signal = signal_in
+        return None
+    
+    def _play(self) -> None:
+        sd.play(self.signal)
+        return None
+
+    def _plot_waveform(self) -> None:
         """ Return a plot of a waveform passed as input. """
         fig = plt.figure()
         ax = fig.add_subplot(111)
@@ -50,20 +64,27 @@ class GUI:
             labelleft = False
         )
 
-        t = np.arange(0, 3, .01)
-        s = np.sin(2 * np.pi * t)
+        signal_length = len(self.signal)
+        signal_duration = signal_length // sampling_rate
 
-        wave = ax.plot(t, s)
+        t = np.linspace(0, signal_duration, signal_length)
+
+        ax.plot(t, self.signal)
+
+        display = FigureCanvasTkAgg(fig, master=self.root)      # widget to display a graphic of our waveform
+        display.draw
+        display.get_tk_widget().pack(      # create and pack a widget for the figure canvas
+            side=tk.TOP,
+            fill=tk.BOTH,
+            expand=True
+        )
         
-        return fig
+        return None
 
 
 def main():
     gui = GUI()
-    gui.set_params()
-    gui.create_widgets()
-    gui.pack_widgets()
     gui.root.mainloop()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
