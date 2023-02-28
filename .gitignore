@@ -1,5 +1,5 @@
-# Virtual environment directory.
-.venv/
+# Bytecode-compiled files
+__pycache__
 
-# Wav files.
-*.wav
+# Environments
+.venv
