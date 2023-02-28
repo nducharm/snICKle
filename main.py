@@ -1,4 +1,4 @@
-from pedalapp import GUI
+from make_gui import GUI
 
 def main():
     gui = GUI()

@@ -168,11 +168,3 @@ class GUI:
     def _filter(self) -> None:
         """ Placeholder to test various digital filter designs. """
         pass
-
-
-def main():
-    gui = GUI()
-    gui.root.mainloop()
-
-if __name__ == '__main__':
-    main()
