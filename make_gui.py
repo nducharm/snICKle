@@ -1,12 +1,12 @@
-import tkinter as tk
-
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import matplotlib.pyplot as plt
-
 import numpy as np
 
 from scipy.fft import fft, fftfreq, fftshift
 from scipy import signal
+
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+
+import tkinter as tk
 
 import sounddevice as sd
 
@@ -26,22 +26,22 @@ class GUI:
 
         self._set_window_params()
         
-        # set default signal duration and sampling times
+        # Set default signal duration and sampling times.
         self.duration = 5
         self.times = np.linspace(
             0, self.duration, self.duration * sampling_rate
             )
-        # intialize signal attribute as the 0 fn
+        # Intialize signal attribute as the 0 function.
         self.signal = np.sin(self.times)
         
 
-        # plot waveform of recorded signal
+        # Plot waveform of recorded signal.
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
         self._set_pyplot_params()
-        # create figure canvas for displaying matplotlib output
+        # Create figure canvas for displaying matplotlib output.
         self.display = FigureCanvasTkAgg(self.fig, master=self.root)
-        # create and pack a widget for the figure canvas
+        # Create and pack a widget for the figure canvas.
         self.display.get_tk_widget().pack(
             side='top',
             fill='both',
@@ -77,7 +77,7 @@ class GUI:
         play_button.pack()
 
     def _quit(self) -> None:
-        """ Quits and destroys Tk window.
+        """Quit and destroy Tk window.
         
         The default `root.quit` method is not sufficient to halt the
         program because of some interaction with `matplotlib`, so we
@@ -87,20 +87,20 @@ class GUI:
         self.root.destroy()
 
     def _set_window_params(self) -> None:
-        """ Sets parameters for the Tk window.
+        """Set parameters for the Tk window.
         
         Sets title, window geometry, quit protocol, etc..
         """
-        self.root.title('S. N. I. C. K. L. E.')
+        self.root.title('snICKle')
 
-        # set window X button command
+        # Set window X button command.
         self.root.protocol('WM_DELETE_WINDOW', self._quit)
         
-        # set default window size to be maximized to screen dimensions
+        # Set default window size to be maximized to screen dimensions.
         self.root.attributes('-zoomed', True)
 
     def _set_pyplot_params(self) -> None:
-        """ Sets params for the axes displayed on the figure canvas.
+        """Set parameters for the axes displayed on the figure canvas.
         
         Axes tick parameters, line properties, etc.. Just makes the
         constructor code less busy.
@@ -108,7 +108,7 @@ class GUI:
         pass
 
     def _record(self) -> None:
-        """ Records user input to `self.signal` and updates the graph.
+        """Record user input to `self.signal` and update the graph.
         
         Calls the relevant function from sounddevice (using our
         defaults). Execution of the program is paused while the
@@ -116,20 +116,21 @@ class GUI:
         `self.signal`, `_plot_waveform` is called to update the graphed
         waveform on the figure canvas.
         """
-        signal_in = sd.rec(self.duration * sampling_rate)       # uses sd.default.samplerate and sd.default.channels
-        sd.wait()                                               # pause the program while recording completes
+        signal_in = sd.rec(self.duration * sampling_rate)
+        # Pause the program while recording completes.
+        sd.wait()
         self.signal = signal_in
         self._plot_waveform()
     
     def _play(self) -> None:
-        """ Plays back `self.signal`. 
+        """Play back `self.signal`. 
         
         Simply calls the relevant function from sounddevice.
         """
-        sd.play(self.signal)        # uses sd.default.samplerate
+        sd.play(self.signal)
 
     def _plot_waveform(self) -> None:
-        """ Draws self.signal as a waveform on the Tk figure canvas. 
+        """Draw self.signal as a waveform on the Tk figure canvas. 
         
         The Tk figure canvas is associated with the figure `self.fig`,
         which has an axes `self.ax`. We want to redraw the waveform
@@ -140,15 +141,14 @@ class GUI:
         state of `self.signal`. We also update the x-axis data in case
         the signal duration has changed.
         """
-
-        # get `self.waveform`'s line object and change its x and y data
+        # Get plot's line object and change its x and y data.
         waveform_line = self.waveform[0]
         waveform_line.set_xdata(self.times)
         waveform_line.set_ydata(self.signal)
         self.display.draw()
 
     def _fourier_transform(self) -> None:
-        """ Displays DFT of `self.signal` on the figure canvas.
+        """Display DFT of `self.signal` on the figure canvas.
         
         Plots the amplitude portion of the amplitude-phase form of the
         DFT on the figure canvas.
@@ -156,15 +156,15 @@ class GUI:
         signalft = fftshift(fft(self.signal))
         freq = fftshift(fftfreq(self.times.shape[-1]))
 
-        # calling `_plot_waveform` here would cause trouble because we
-        # would have to overwrite `self.signal` and `self.times`. inst-
+        # Calling `_plot_waveform` here would cause trouble because we
+        # would have to overwrite `self.signal` and `self.times`. Inst-
         # ead we change the x and y data in `self.waveform` again with-
-        # out touching any attributes we don't want to overwrite 
+        # out touching any attributes we don't want to overwrite. 
         waveform_line = self.waveform[0]
         waveform_line.set_xdata(freq)
         waveform_line.set_ydata(signalft.real)
         self.display.draw()
 
     def _filter(self) -> None:
-        """ Placeholder to test various digital filter designs. """
+        """Placeholder to test various digital filter designs."""
         pass
