@@ -81,10 +81,5 @@ def delay_effect(
     audioout = _trim_convolution(audioout)
 
     return audioout
-    
-times = np.linspace(0, 5, 44_100 * 5)
-ligma = np.sin(2 * np.pi * times)
-
-delay_effect(ligma, 2, 0.8)
 
 # todo: phaser, chorus, reverb, flanger, treble, bass, midrange

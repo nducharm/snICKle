@@ -78,10 +78,10 @@ class GUI:
             )
         delay_button.pack()
 
-        troubleshoot_button = tk.Button(
-            self.root, text='CHECK', command=self.troubleshoot_length
-        )
-        troubleshoot_button.pack()
+        #troubleshoot_button = tk.Button(
+        #    self.root, text='CHECK', command=self.troubleshoot_length
+        #)
+        #troubleshoot_button.pack()
 
     def _quit(self) -> None:
         """Quit and destroy Tk window.
@@ -123,10 +123,17 @@ class GUI:
         `self.audio_signal`, `_plot_waveform` is called to update the
         graphed waveform on the figure canvas.
         """
-        audio_signal_in = sd.rec(self.duration * sampling_rate)
-        # Pause the program while recording completes.
-        sd.wait()
-        self.audio_signal = audio_signal_in
+        audio_signal_in = sd.rec(
+            self.duration * sampling_rate, blocking='True'
+            )
+
+        # Cast audio_signal_in from a 2d array to a 1d array.
+        # This is needed because all our filters operate on 1d arrays.
+        reduced_dim = np.zeros(self.duration * sampling_rate)
+        for j in range(self.duration * sampling_rate):
+            reduced_dim[j] = audio_signal_in[j][0]
+
+        self.audio_signal = reduced_dim
         self._plot_waveform()
     
     def _play(self) -> None:
@@ -188,6 +195,3 @@ class GUI:
         self.audio_signal = delayed
 
         self._plot_waveform()
-
-    def troubleshoot_length(self):
-        print(self.audio_signal.ndim)
