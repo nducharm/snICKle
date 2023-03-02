@@ -10,6 +10,7 @@ import tkinter as tk
 
 import sounddevice as sd
 
+import filter_library
 
 # sampling rate is globally fixed at the CD standard of 44_100 Hz
 sampling_rate = 44_100
@@ -26,30 +27,26 @@ class GUI:
 
         self._set_window_params()
         
-        # Set default signal duration and sampling times.
+        # Set default recording duration and sampling times.
         self.duration = 5
         self.times = np.linspace(
             0, self.duration, self.duration * sampling_rate
             )
-        # Intialize signal attribute as the 0 function.
-        self.signal = np.sin(self.times)
-        
+        # Intialize audio_signal attribute as the 0 function.
+        self.audio_signal = 0.5 * np.sin(2 * np.pi * self.times * 342)
 
-        # Plot waveform of recorded signal.
+        # Plot waveform of recorded audio_signal.
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
         self._set_pyplot_params()
         # Create figure canvas for displaying matplotlib output.
         self.display = FigureCanvasTkAgg(self.fig, master=self.root)
         # Create and pack a widget for the figure canvas.
-        self.display.get_tk_widget().pack(
-            side='top',
-            fill='both',
-            expand=True
+        self.display.get_tk_widget().place(
+            anchor='nw',
         )
-        self.waveform = self.ax.plot(self.times, self.signal)
+        self.waveform = self.ax.plot(self.times, self.audio_signal)
         self._plot_waveform()
-
 
         # dft_button = tk.Button(
         # self.root, text='Frequency Domain', command=self._fourier_transform
@@ -61,20 +58,30 @@ class GUI:
         # )
         # idft_button.pack()
 
-        modify_button = tk.Button(
-            self.root, text='APPLY FILTER', command=self._filter
-            )
-        modify_button.pack()
+        # Frame for buttons under the canvas.
+        canvas_frame = tk.Frame(self.root)
 
         record_button = tk.Button(
-            self.root, text='RECORD', command=self._record
+            canvas_frame, text='RECORD', command=self._record
             )
-        record_button.pack()
+        record_button.pack(side='left')
 
         play_button = tk.Button(
-            self.root, text='PLAY', command=self._play
+            canvas_frame, text='PLAY', command=self._play
             )
-        play_button.pack()
+        play_button.pack(side='right')
+
+        canvas_frame.place(relx=0.125, rely=0.5)
+
+        delay_button = tk.Button(
+            self.root, text='DELAY', command=self._delay
+            )
+        delay_button.pack()
+
+        troubleshoot_button = tk.Button(
+            self.root, text='CHECK', command=self.troubleshoot_length
+        )
+        troubleshoot_button.pack()
 
     def _quit(self) -> None:
         """Quit and destroy Tk window.
@@ -108,29 +115,29 @@ class GUI:
         pass
 
     def _record(self) -> None:
-        """Record user input to `self.signal` and update the graph.
+        """Record user input and update the graph.
         
         Calls the relevant function from sounddevice (using our
         defaults). Execution of the program is paused while the
         recording completes. After new data is written out to 
-        `self.signal`, `_plot_waveform` is called to update the graphed
-        waveform on the figure canvas.
+        `self.audio_signal`, `_plot_waveform` is called to update the
+        graphed waveform on the figure canvas.
         """
-        signal_in = sd.rec(self.duration * sampling_rate)
+        audio_signal_in = sd.rec(self.duration * sampling_rate)
         # Pause the program while recording completes.
         sd.wait()
-        self.signal = signal_in
+        self.audio_signal = audio_signal_in
         self._plot_waveform()
     
     def _play(self) -> None:
-        """Play back `self.signal`. 
+        """Play back recorded signal. 
         
         Simply calls the relevant function from sounddevice.
         """
-        sd.play(self.signal)
+        sd.play(self.audio_signal)
 
     def _plot_waveform(self) -> None:
-        """Draw self.signal as a waveform on the Tk figure canvas. 
+        """Draw recorded signal as a waveform on the Tk figure canvas. 
         
         The Tk figure canvas is associated with the figure `self.fig`,
         which has an axes `self.ax`. We want to redraw the waveform
@@ -138,33 +145,49 @@ class GUI:
         top of existing ones; to do this, we reach into `self.waveform`,
         the plot that is shown on `self.ax`, to access its associated
         line object and update the y-axis data to reflect the current
-        state of `self.signal`. We also update the x-axis data in case
-        the signal duration has changed.
+        state of `self.audio_signal`. We also update the x-axis data in
+        case the duration has changed.
         """
+        self.ax.set_title('Signal, Time Domain')
+
         # Get plot's line object and change its x and y data.
         waveform_line = self.waveform[0]
         waveform_line.set_xdata(self.times)
-        waveform_line.set_ydata(self.signal)
+        waveform_line.set_ydata(self.audio_signal)
         self.display.draw()
 
     def _fourier_transform(self) -> None:
-        """Display DFT of `self.signal` on the figure canvas.
+        """Display DFT of `self.audio_signal` on the figure canvas.
         
         Plots the amplitude portion of the amplitude-phase form of the
         DFT on the figure canvas.
         """
-        signalft = fftshift(fft(self.signal))
+        self.ax.set_title('Signal, Frequency Domain')
+
+        audio_signalft = fftshift(fft(self.audio_signal))
         freq = fftshift(fftfreq(self.times.shape[-1]))
 
         # Calling `_plot_waveform` here would cause trouble because we
-        # would have to overwrite `self.signal` and `self.times`. Inst-
+        # would have to overwrite `self.audio_signal` and `self.times`. Inst-
         # ead we change the x and y data in `self.waveform` again with-
         # out touching any attributes we don't want to overwrite. 
         waveform_line = self.waveform[0]
         waveform_line.set_xdata(freq)
-        waveform_line.set_ydata(signalft.real)
+        waveform_line.set_ydata(audio_signalft.real)
         self.display.draw()
 
-    def _filter(self) -> None:
-        """Placeholder to test various digital filter designs."""
-        pass
+    def _delay(self) -> None:
+        """Apply a delay or echo effect to the audio_signal.
+        
+        Calls the appropriate function from the filter library.
+        """
+        delayed = filter_library.delay_effect(
+            self.audio_signal, echoes=2, delay=0.8
+            )
+            
+        self.audio_signal = delayed
+
+        self._plot_waveform()
+
+    def troubleshoot_length(self):
+        print(self.audio_signal.ndim)
