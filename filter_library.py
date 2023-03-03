@@ -72,7 +72,8 @@ def delay_effect(
         # The argument of the decay function is normalized by
         # samplerate to make the decay a function of time rather
         # than sample number.
-        comb[delay * j] = math.exp(-j / samplerate)
+        if delay * j <= len(audioin):
+            comb[delay * j] = math.exp(-j)
 
     # Calculate the (2n-1) point convolution.
     audioout = signal.fftconvolve(audioin, comb)

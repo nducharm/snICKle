@@ -7,6 +7,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.pyplot as plt
 
 import tkinter as tk
+from tkinter import ttk
 
 import sounddevice as sd
 
@@ -33,7 +34,7 @@ class GUI:
             0, self.duration, self.duration * sampling_rate
             )
         # Intialize audio_signal attribute as the 0 function.
-        self.audio_signal = 0.5 * np.sin(2 * np.pi * self.times * 342)
+        self.audio_signal = np.zeros(self.duration * sampling_rate)
 
         # Plot waveform of recorded audio_signal.
         self.fig = plt.figure()
@@ -63,20 +64,50 @@ class GUI:
 
         record_button = tk.Button(
             canvas_frame, text='RECORD', command=self._record
-            )
+        )
         record_button.pack(side='left')
 
         play_button = tk.Button(
             canvas_frame, text='PLAY', command=self._play
-            )
+        )
         play_button.pack(side='right')
 
         canvas_frame.place(relx=0.125, rely=0.5)
 
+        # Labeled frame for all effect subframes.
+        effects_frame = ttk.LabelFrame(
+            self.root, text='Effects'
+        )
+
+        # Labeled frame for widgets related to delay effect.
+        delay_frame = ttk.Labelframe(
+            effects_frame, text='Delay'
+        )
+
         delay_button = tk.Button(
-            self.root, text='DELAY', command=self._delay
-            )
+            delay_frame, text='Apply Effect', command=self._delay
+        )
         delay_button.pack()
+
+        # Let user control number of echoes for delay effect.
+        self.num_echoes = tk.IntVar()
+        echoes_slider = tk.Scale(
+            delay_frame, variable=self.num_echoes, from_=0, to=8,
+            orient='horizontal', label='Num echoes'
+        )
+        echoes_slider.pack(side='left')
+
+        # Length of delay effect.
+        self.len_delay = tk.DoubleVar()
+        delay_slider = tk.Scale(
+            delay_frame, variable=self.len_delay, from_=0.2, to=1.2,
+            orient='horizontal', label='Len delay', resolution=0.05
+        )
+        delay_slider.pack(side='right')
+
+        delay_frame.pack()
+
+        effects_frame.place(relx=0.34, rely=0)
 
         #troubleshoot_button = tk.Button(
         #    self.root, text='CHECK', command=self.troubleshoot_length
@@ -125,7 +156,7 @@ class GUI:
         """
         audio_signal_in = sd.rec(
             self.duration * sampling_rate, blocking='True'
-            )
+        )
 
         # Cast audio_signal_in from a 2d array to a 1d array.
         # This is needed because all our filters operate on 1d arrays.
@@ -175,9 +206,9 @@ class GUI:
         freq = fftshift(fftfreq(self.times.shape[-1]))
 
         # Calling `_plot_waveform` here would cause trouble because we
-        # would have to overwrite `self.audio_signal` and `self.times`. Inst-
-        # ead we change the x and y data in `self.waveform` again with-
-        # out touching any attributes we don't want to overwrite. 
+        # would have to overwrite `self.audio_signal` and `self.times`.
+        # Instead we change the x and y data in `self.waveform` again
+        # without touching any attributes we don't want to overwrite. 
         waveform_line = self.waveform[0]
         waveform_line.set_xdata(freq)
         waveform_line.set_ydata(audio_signalft.real)
@@ -189,8 +220,9 @@ class GUI:
         Calls the appropriate function from the filter library.
         """
         delayed = filter_library.delay_effect(
-            self.audio_signal, echoes=2, delay=0.8
-            )
+            self.audio_signal, echoes=self.num_echoes.get(),
+            delay=self.len_delay.get()
+        )
             
         self.audio_signal = delayed
 
