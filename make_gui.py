@@ -34,12 +34,12 @@ class GUI:
             0, self.duration.get(), self.duration.get() * sampling_rate
             )
         # Intialize audio_signal attribute as the 0 function.
-        self.audio_signal = np.sin(2 * np.pi * self.times * 342)
+        self.audio_signal = np.zeros(self.duration.get() * sampling_rate)
 
         # Plot waveform of recorded audio_signal.
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111)
-        self._set_pyplot_params()
+        # self._set_pyplot_params()
         # Create figure canvas for displaying matplotlib output.
         self.display = FigureCanvasTkAgg(self.fig, master=self.root)
         # Create and pack a widget for the figure canvas.
@@ -48,16 +48,6 @@ class GUI:
         )
         self.waveform = self.ax.plot(self.times, self.audio_signal)
         self._plot_waveform()
-
-        # dft_button = tk.Button(
-        # self.root, text='Frequency Domain', command=self._fourier_transform
-        # )
-        # dft_button.pack()
-
-        # idft_button = tk.Button(
-        # self.root, text='Time Domain', command=self._plot_waveform
-        # )
-        # idft_button.pack()
 
         # Frame for buttons under the canvas.
         canvas_frame = tk.Frame(self.root)
@@ -114,6 +104,18 @@ class GUI:
 
         delay_frame.pack()
 
+        # Labeled subframe for reverb effect and parameters.
+        reverb_frame = ttk.Labelframe(
+            effects_frame, text='Reverb'
+        )
+
+        reverb_button = tk.Button(
+            reverb_frame, text='Apply Effect', command=self._reverb
+        )
+        reverb_button.pack()
+
+        reverb_frame.pack()
+
         # Labeled subframe for flanger effect and parameters.
         flanger_frame = ttk.Labelframe(
             effects_frame, text='Flanger'
@@ -159,7 +161,6 @@ class GUI:
         )
         depth_slider.pack()
 
-
         flanger_frame.pack()
 
         effects_frame.place(relx=0.34, rely=0)
@@ -192,13 +193,13 @@ class GUI:
         # Set default window size to be maximized to screen dimensions.
         self.root.attributes('-zoomed', True)
 
-    def _set_pyplot_params(self) -> None:
-        """Set parameters for the axes displayed on the figure canvas.
+    # def _set_pyplot_params(self) -> None:
+    #     """Set parameters for the axes displayed on the figure canvas.
         
-        Axes tick parameters, line properties, etc.. Just makes the
-        constructor code less busy.
-        """
-        pass
+    #     Axes tick parameters, line properties, etc.. Just makes the
+    #     constructor code less busy.
+    #     """
+    #     pass
 
     def _record(self) -> None:
         """Record user input and update the graph.
@@ -249,25 +250,25 @@ class GUI:
         waveform_line.set_ydata(self.audio_signal)
         self.display.draw()
 
-    def _fourier_transform(self) -> None:
-        """Display DFT of `self.audio_signal` on the figure canvas.
+    # def _fourier_transform(self) -> None:
+    #     """Display DFT of `self.audio_signal` on the figure canvas.
         
-        Plots the amplitude portion of the amplitude-phase form of the
-        DFT on the figure canvas.
-        """
-        self.ax.set_title('Signal, Frequency Domain')
+    #     Plots the amplitude portion of the amplitude-phase form of the
+    #     DFT on the figure canvas.
+    #     """
+    #     self.ax.set_title('Signal, Frequency Domain')
 
-        audio_signalft = fftshift(fft(self.audio_signal))
-        freq = fftshift(fftfreq(self.times.shape[-1]))
+    #     audio_signalft = fftshift(fft(self.audio_signal))
+    #     freq = fftshift(fftfreq(self.times.shape[-1]))
 
-        # Calling `_plot_waveform` here would cause trouble because we
-        # would have to overwrite `self.audio_signal` and `self.times`.
-        # Instead we change the x and y data in `self.waveform` again
-        # without touching any attributes we don't want to overwrite. 
-        waveform_line = self.waveform[0]
-        waveform_line.set_xdata(freq)
-        waveform_line.set_ydata(audio_signalft.real)
-        self.display.draw()
+    #     # Calling `_plot_waveform` here would cause trouble because we
+    #     # would have to overwrite `self.audio_signal` and `self.times`.
+    #     # Instead we change the x and y data in `self.waveform` again
+    #     # without touching any attributes we don't want to overwrite. 
+    #     waveform_line = self.waveform[0]
+    #     waveform_line.set_xdata(freq)
+    #     waveform_line.set_ydata(audio_signalft.real)
+    #     self.display.draw()
 
     def _delay(self) -> None:
         """Apply a delay or echo effect to audio_signal.
@@ -279,10 +280,20 @@ class GUI:
             self.audio_signal, echoes=self.num_echoes.get(),
             delay=self.len_delay.get()
         )
-            
         self.audio_signal = delayed
-
         self._plot_waveform()
+
+    def _reverb(self) -> None:
+        """Apply a reverb effect to audio_signal.
+        
+        Calls the delay function from filter library with parameters tuned
+        differently to the _delay method.
+        """
+        reverbed = filter_library.delay_effect(
+            self.audio_signal, echoes=10, delay=0.1
+        )
+        self.audio_signal = reverbed
+        self._plot_waveform
 
     def _flanger(self) -> None:
         """Apply a flanger effect to audio_signal.
@@ -294,7 +305,5 @@ class GUI:
             self.audio_signal, self.flange_depth.get(), 
             self.flange_sweep.get(), shape=self.flange_shape.get()
         )
-
         self.audio_signal = flanged
-
         self._plot_waveform()
