@@ -29,12 +29,12 @@ class GUI:
         self._set_window_params()
         
         # Set default recording duration and sampling times.
-        self.duration = 5
+        self.duration = tk.IntVar(value=5)
         self.times = np.linspace(
-            0, self.duration, self.duration * sampling_rate
+            0, self.duration.get(), self.duration.get() * sampling_rate
             )
         # Intialize audio_signal attribute as the 0 function.
-        self.audio_signal = np.zeros(self.duration * sampling_rate)
+        self.audio_signal = np.sin(2 * np.pi * self.times * 342)
 
         # Plot waveform of recorded audio_signal.
         self.fig = plt.figure()
@@ -62,6 +62,13 @@ class GUI:
         # Frame for buttons under the canvas.
         canvas_frame = tk.Frame(self.root)
 
+        # Control recording duration.
+        duration_slider = tk.Scale(
+            canvas_frame, label='Recording Length', orient='horizontal',
+            from_=5, to=20, variable=self.duration
+        )
+        duration_slider.pack()
+
         record_button = tk.Button(
             canvas_frame, text='RECORD', command=self._record
         )
@@ -79,7 +86,7 @@ class GUI:
             self.root, text='Effects'
         )
 
-        # Labeled frame for widgets related to delay effect.
+        # Labeled subframe for delay effect and parameters.
         delay_frame = ttk.Labelframe(
             effects_frame, text='Delay'
         )
@@ -89,7 +96,7 @@ class GUI:
         )
         delay_button.pack()
 
-        # Let user control number of echoes for delay effect.
+        # Number of echoes for delay effect.
         self.num_echoes = tk.IntVar()
         echoes_slider = tk.Scale(
             delay_frame, variable=self.num_echoes, from_=0, to=8,
@@ -106,6 +113,54 @@ class GUI:
         delay_slider.pack(side='right')
 
         delay_frame.pack()
+
+        # Labeled subframe for flanger effect and parameters.
+        flanger_frame = ttk.Labelframe(
+            effects_frame, text='Flanger'
+        )
+
+        flanger_button = tk.Button(
+            flanger_frame, text='Apply Effect', command=self._flanger
+        )
+        flanger_button.pack()
+
+        # Select shape from 3 options.
+        self.flange_shape = tk.StringVar()
+        shape_button1 = ttk.Radiobutton(
+            flanger_frame, text='Sin', variable=self.flange_shape, value='sin'
+        )
+        shape_button2 = ttk.Radiobutton(
+            flanger_frame, text='Triangle', variable=self.flange_shape, 
+            value='triangle'
+        )
+        shape_button3 = ttk.Radiobutton(
+            flanger_frame, text='Sawtooth', variable=self.flange_shape,
+            value='saw'
+        )
+        shape_button1.pack()
+        shape_button2.pack()
+        shape_button3.pack()
+
+        # Control sweep.
+        self.flange_sweep = tk.DoubleVar()
+        sweep_slider = tk.Scale(
+            flanger_frame, from_=0.1, to=0.33, resolution=0.01,
+            variable=self.flange_sweep, orient='horizontal',
+            label = 'Sweep'
+        )
+        sweep_slider.pack(side='right')
+
+        # Control depth.
+        self.flange_depth = tk.DoubleVar()
+        depth_slider = tk.Scale(
+            flanger_frame, from_=0.001, to=0.008, resolution=0.001,
+            variable=self.flange_depth, orient='horizontal',
+            label = 'Depth'
+        )
+        depth_slider.pack()
+
+
+        flanger_frame.pack()
 
         effects_frame.place(relx=0.34, rely=0)
 
@@ -155,13 +210,13 @@ class GUI:
         graphed waveform on the figure canvas.
         """
         audio_signal_in = sd.rec(
-            self.duration * sampling_rate, blocking='True'
+            self.duration.get() * sampling_rate, blocking='True'
         )
 
         # Cast audio_signal_in from a 2d array to a 1d array.
         # This is needed because all our filters operate on 1d arrays.
-        reduced_dim = np.zeros(self.duration * sampling_rate)
-        for j in range(self.duration * sampling_rate):
+        reduced_dim = np.zeros(self.duration.get() * sampling_rate)
+        for j in range(self.duration.get() * sampling_rate):
             reduced_dim[j] = audio_signal_in[j][0]
 
         self.audio_signal = reduced_dim
@@ -215,9 +270,10 @@ class GUI:
         self.display.draw()
 
     def _delay(self) -> None:
-        """Apply a delay or echo effect to the audio_signal.
+        """Apply a delay or echo effect to audio_signal.
         
-        Calls the appropriate function from the filter library.
+        Calls the appropriate function from the filter library and match
+        it with the relevant parameters set in the GUI.
         """
         delayed = filter_library.delay_effect(
             self.audio_signal, echoes=self.num_echoes.get(),
@@ -225,5 +281,20 @@ class GUI:
         )
             
         self.audio_signal = delayed
+
+        self._plot_waveform()
+
+    def _flanger(self) -> None:
+        """Apply a flanger effect to audio_signal.
+
+        Call the appropriate function from the filter library and match
+        it with the relevant parameters set in the GUI.
+        """
+        flanged = filter_library.flanger_effect(
+            self.audio_signal, self.flange_depth.get(), 
+            self.flange_sweep.get(), shape=self.flange_shape.get()
+        )
+
+        self.audio_signal = flanged
 
         self._plot_waveform()
