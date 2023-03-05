@@ -38,7 +38,7 @@ def delay_effect(
         ) -> np.ndarray:
     """"Add one or more echoes to a signal without increasing duration.
     
-    The effect is achieved by convolving `audioin` with a Dirac comb
+    The effect is achieved by convolving x[n] with a Dirac comb D[n]
     that has been attenuated by a sharp decay function. To keep the
     operation from increasing (read: doubling) the duration, the result
     of the convolution is pruned back to the first n points using the
@@ -47,7 +47,7 @@ def delay_effect(
     Parameters
     ----------
     audioin: np.ndarray
-        The audio signal to which the echo effect will be added.
+        Audio input, x[n].
 
     echoes: int
         The number of echoes to add.
@@ -61,7 +61,7 @@ def delay_effect(
     Returns
     -------
     np.ndarray
-        The signal with echo added.
+        First n points of (x * D)[n].
     """
     # Convert delay from seconds to samples.
     delay = math.floor(delay * samplerate)
@@ -86,34 +86,32 @@ def flanger_effect(
         ) -> np.ndarray :
     """Overlap a signal with a time-varying delayed copy.
     
-    A flanger is an effect that overlays a signal with itself on
-    a short delay. The length of the delay 'flanges', meaning
-    it varies in time according to some low-frequency wave. The output
-    should look like y[n] = x[n] + x[n - M[n]] where M[n] is the time
-    varying delay parameter.
+    A flanger is a delay that varies with time according to some 
+    low-frequency wave. The output should look like y[n] = x[n] + 
+    x[n - M[n]] where M[n] is the time varying delay parameter.
 
     Parameters
     ----------
     audioin: np.ndarray
-        The audio signal to be flanged.
+        Audio input, x[n].
 
     depth: float
-        Amplitude of the delay wave.
+        Amplitude of M[n].
 
     sweep: float
-        Frequency of the delay wave.
+        Frequency of M[n].
 
     samplerate: int
         The sampling rate in Hz of the input signal.
 
     shape: str
-        The type of wave that controls the delay. May be 'triangle',
-        'sin' or 'saw'.
+        The type of function M[n] will be. May be 'triangle', 'sin' or
+        'saw'.
 
     Returns
     -------
     np.ndarray
-        The input signal overlaid with a delayed copy of itself.
+        x[n] + x[n - M[n]]
     """
     # Error handling for shape argument.
     shapes = ['triangle', 'sin', 'saw']
