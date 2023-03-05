@@ -15,7 +15,7 @@ def _trim_convolution(audioin: np.ndarray) -> np.ndarray:
 
     Parameters
     ----------
-    `audioin`: np.ndarray
+    audioin: np.ndarray
         A 1-dimensional (2n-1) point array.
 
     Returns
@@ -56,22 +56,19 @@ def delay_effect(
         The spacing between echoes in seconds.
 
     samplerate: int
-        The sampling rate of the audio signal, defaults to CD standard.
+        The sampling rate in Hz of the input signal.
     
     Returns
     -------
     np.ndarray
         The signal with echo added.
     """
-    # Round delay to nearest sample number.
+    # Convert delay from seconds to samples.
     delay = math.floor(delay * samplerate)
 
     # Each echo is a Dirac impulse with a decaying height.
     comb = np.zeros(len(audioin))
     for j in range(echoes + 1):
-        # The argument of the decay function is normalized by
-        # samplerate to make the decay a function of time rather
-        # than sample number.
         if delay * j <= len(audioin):
             comb[delay * j] = math.exp(-j)
 
@@ -83,4 +80,81 @@ def delay_effect(
 
     return audioout
 
-# todo: phaser, chorus, reverb, flanger, treble, bass, midrange
+def flanger_effect(
+        audioin: np.ndarray, depth: float, sweep: float = 1,
+        samplerate: int = 44_100, shape: str = 'triangle'
+        ) -> np.ndarray :
+    """Overlap a signal with a time-varying delayed copy.
+    
+    A flanger is an effect that overlays a signal with itself on
+    a short delay. The length of the delay 'flanges', meaning
+    it varies in time according to some low-frequency wave. The output
+    should look like y[n] = x[n] + x[n - M[n]] where M[n] is the time
+    varying delay parameter.
+
+    Parameters
+    ----------
+    audioin: np.ndarray
+        The audio signal to be flanged.
+
+    depth: float
+        Amplitude of the delay wave.
+
+    sweep: float
+        Frequency of the delay wave.
+
+    samplerate: int
+        The sampling rate in Hz of the input signal.
+
+    shape: str
+        The type of wave that controls the delay. May be 'triangle',
+        'sin' or 'saw'.
+
+    Returns
+    -------
+    np.ndarray
+        The input signal overlaid with a delayed copy of itself.
+    """
+    # Error handling for shape argument.
+    shapes = ['triangle', 'sin', 'saw']
+    if shape not in shapes:
+        raise ValueError('Invalid shape. Expected "triangle", "sin" or "saw".')
+
+    # Convert depth from seconds into samples.
+    depth= math.floor(depth * samplerate)
+
+    length = len(audioin)
+    sampletimes = np.linspace(0, length // samplerate, length)
+    
+    # Generate the delay wave.
+    # Must divide by samplerate to normalize frequency.
+    if shape == 'triangle':
+        delay_wave = depth + depth * signal.sawtooth(
+            2 * np.pi * sampletimes * sweep, 0.5
+        )
+    elif shape == 'saw':
+        delay_wave = depth + depth * signal.sawtooth(
+            2 * np.pi * sampletimes * sweep
+        )
+    elif shape == 'sin':
+        delay_wave = depth + depth * np.sin(
+            2 * np.pi * sampletimes * sweep
+        )
+
+    # At each index j, the signal out should be x[j] + x[j - M[j]].
+    audioout = np.zeros(length)
+    for j in range(length):
+        # If-elif-else block handles out of bounds.
+        if j - delay_wave[j] < 0:
+            audioout[j] = audioin[j] + audioin[0]
+        # Pretty sure this isn't possible, can remove this elif clause.
+        elif j - delay_wave[j] >= length:
+            audioout[j] = audioin[j] + audioin[length - 1]
+        else:
+            # delay_wave is currently integer values stored as floats.
+            audioout[j] = audioin[j] + audioin[j - int(delay_wave[j])]
+
+    return audioout
+        
+
+# todo: phaser, chorus, treble, bass, midrange
