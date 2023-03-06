@@ -38,7 +38,6 @@ class GUI:
 
         # Plot waveform of recorded audio_signal.
         self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111)
         # self._set_pyplot_params()
         # Create figure canvas for displaying matplotlib output.
         self.display = FigureCanvasTkAgg(self.fig, master=self.root)
@@ -46,7 +45,6 @@ class GUI:
         self.display.get_tk_widget().place(
             anchor='nw',
         )
-        self.waveform = self.ax.plot(self.times, self.audio_signal)
         self._plot_waveform()
 
         # Frame for buttons under the canvas.
@@ -55,7 +53,7 @@ class GUI:
         # Control recording duration.
         duration_slider = tk.Scale(
             canvas_frame, label='Recording Length', orient='horizontal',
-            from_=5, to=20, variable=self.duration
+            from_=5, to=20, variable=self.duration, command=self._update_times
         )
         duration_slider.pack()
 
@@ -165,10 +163,6 @@ class GUI:
 
         effects_frame.place(relx=0.34, rely=0)
 
-        #troubleshoot_button = tk.Button(
-        #    self.root, text='CHECK', command=self.troubleshoot_length
-        #)
-        #troubleshoot_button.pack()
 
     def _quit(self) -> None:
         """Quit and destroy Tk window.
@@ -200,6 +194,11 @@ class GUI:
     #     constructor code less busy.
     #     """
     #     pass
+
+    def _update_times(self, duration_str) -> None:
+        """Update self.times to reflect a change in self.duration. """
+        duration = int(duration_str)
+        self.times = np.linspace(0, duration, duration * sampling_rate)
 
     def _record(self) -> None:
         """Record user input and update the graph.
@@ -233,21 +232,14 @@ class GUI:
     def _plot_waveform(self) -> None:
         """Draw recorded signal as a waveform on the Tk figure canvas. 
         
-        The Tk figure canvas is associated with the figure `self.fig`,
-        which has an axes `self.ax`. We want to redraw the waveform
-        displayed on the canvas, rather than stacking new waveforms on 
-        top of existing ones; to do this, we reach into `self.waveform`,
-        the plot that is shown on `self.ax`, to access its associated
-        line object and update the y-axis data to reflect the current
-        state of `self.audio_signal`. We also update the x-axis data in
-        case the duration has changed.
+        Clear existing axes and create a new axes object populated by a
+        graph of the current audio_signal.
         """
-        self.ax.set_title('Signal, Time Domain')
+        self.fig.clear()
+        ax = self.fig.add_subplot(111)
+        ax.set_title('Signal, Time Domain')
 
-        # Get plot's line object and change its x and y data.
-        waveform_line = self.waveform[0]
-        waveform_line.set_xdata(self.times)
-        waveform_line.set_ydata(self.audio_signal)
+        ax.plot(self.times, self.audio_signal)
         self.display.draw()
 
     # def _fourier_transform(self) -> None:
