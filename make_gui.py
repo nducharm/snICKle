@@ -67,6 +67,13 @@ class GUI:
         )
         play_button.pack(side='right')
 
+        self.volume = tk.IntVar(value=100)
+        volume_slider = tk.Scale(
+            canvas_frame, label='Volume', orient='horizontal',
+            from_=0, to=100, variable=self.volume
+        )
+        volume_slider.pack()
+
         canvas_frame.place(relx=0.125, rely=0.5)
 
         # Labeled frame for all effect subframes.
@@ -167,9 +174,9 @@ class GUI:
     def _quit(self) -> None:
         """Quit and destroy Tk window.
         
-        The default `root.quit` method is not sufficient to halt the
-        program because of some interaction with `matplotlib`, so we
-        call both `root.quit` and `root.destroy`.
+        The default root.quit method is not sufficient to halt the
+        program because of some interaction with matplotlib, so we
+        call both root.quit and root.destroy.
         """
         self.root.quit()
         self.root.destroy()
@@ -184,7 +191,7 @@ class GUI:
         # Set window X button command.
         self.root.protocol('WM_DELETE_WINDOW', self._quit)
         
-        # Set default window size to be maximized to screen dimensions.
+        # Set default window size to be maximized to screen dimensions on Linux.
         self.root.attributes('-zoomed', True)
 
     # def _set_pyplot_params(self) -> None:
@@ -210,7 +217,7 @@ class GUI:
         graphed waveform on the figure canvas.
         """
         audio_signal_in = sd.rec(
-            self.duration.get() * sampling_rate, blocking='True'
+            self.duration.get() * sampling_rate, blocking=True
         )
 
         # Cast audio_signal_in from a 2d array to a 1d array.
@@ -227,7 +234,10 @@ class GUI:
         
         Simply calls the relevant function from sounddevice.
         """
-        sd.play(self.audio_signal)
+        # First modify the volume of the signal.
+        playback_signal = self.volume.get() / 100 * self.audio_signal
+
+        sd.play(playback_signal)
 
     def _plot_waveform(self) -> None:
         """Draw recorded signal as a waveform on the Tk figure canvas. 
