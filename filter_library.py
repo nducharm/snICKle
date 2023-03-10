@@ -35,7 +35,7 @@ def _trim_convolution(audioin: np.ndarray) -> np.ndarray:
 def delay_effect(
         audioin: np.ndarray, echoes: int, delay: float,
         samplerate: int = 44_100
-        ) -> np.ndarray:
+    ) -> np.ndarray:
     """"Add one or more echoes to a signal without increasing duration.
     
     The effect is achieved by convolving x[n] with a Dirac comb D[n]
@@ -83,7 +83,7 @@ def delay_effect(
 def flanger_effect(
         audioin: np.ndarray, depth: float, sweep: float = 1,
         samplerate: int = 44_100, shape: str = 'triangle'
-        ) -> np.ndarray :
+    ) -> np.ndarray :
     """Overlap a signal with a time-varying delayed copy.
     
     A flanger is a delay that varies with time according to some 
@@ -125,7 +125,6 @@ def flanger_effect(
     sampletimes = np.linspace(0, length // samplerate, length)
     
     # Generate the delay wave.
-    # Must divide by samplerate to normalize frequency.
     if shape == 'triangle':
         delay_wave = depth + depth * signal.sawtooth(
             2 * np.pi * sampletimes * sweep, 0.5
