@@ -113,7 +113,7 @@ def flanger_effect(
     np.ndarray
         x[n] + x[n - M[n]]
     """
-    # Error handling for shape argument.
+    # Input sanitization for shape.
     shapes = ['triangle', 'sin', 'saw']
     if shape not in shapes:
         raise ValueError('Invalid shape. Expected "triangle", "sin" or "saw".')

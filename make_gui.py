@@ -46,37 +46,44 @@ class GUI:
             anchor='nw',
         )
         self._plot_waveform()
+        
+        ###############################################################
+        # Frame for recording and playback related widgets.
 
-        # Frame for buttons under the canvas.
-        canvas_frame = tk.Frame(self.root)
+        recording_frame = tk.Frame(
+            self.root, borderwidth=2, relief='raised'
+        )
 
         # Control recording duration.
         duration_slider = tk.Scale(
-            canvas_frame, label='Recording Length', orient='horizontal',
-            from_=5, to=20, variable=self.duration, command=self._update_times
+            recording_frame, label='Recording Length', orient='horizontal',
+            from_=5, to=20, variable=self.duration, command=self._update_times,
+            length=182
         )
-        duration_slider.pack()
+        duration_slider.place(x=5)
 
         record_button = tk.Button(
-            canvas_frame, text='RECORD', command=self._record
+            recording_frame, text='RECORD', command=self._record
         )
-        record_button.pack(side='left')
+        record_button.place(relheight=0.9, width=97, x=860, rely=0.05)
 
         play_button = tk.Button(
-            canvas_frame, text='PLAY', command=self._play
+            recording_frame, text='PLAY', command=self._play
         )
-        play_button.pack(side='right')
+        play_button.place(relheight=0.9, width=97, x=963, rely=0.05)
 
         self.volume = tk.IntVar(value=100)
         volume_slider = tk.Scale(
-            canvas_frame, label='Volume', orient='horizontal',
-            from_=0, to=100, variable=self.volume
+            recording_frame, label='Volume', orient='horizontal',
+            from_=0, to=100, variable=self.volume, length=182
         )
-        volume_slider.pack()
+        volume_slider.place(relx=0.9)
 
-        canvas_frame.place(relx=0.125, rely=0.5)
+        recording_frame.place(relheight=0.1, relwidth=1, relx=0, rely=0.9)
 
+        ###############################################################
         # Labeled frame for all effect subframes.
+
         effects_frame = ttk.LabelFrame(
             self.root, text='Effects'
         )
@@ -249,7 +256,7 @@ class GUI:
         ax = self.fig.add_subplot(111)
         ax.set_title('Signal, Time Domain')
 
-        ax.plot(self.times, self.audio_signal)
+        ax.plot(self.times, self.audio_signal, color="orange")
         self.display.draw()
 
     # def _fourier_transform(self) -> None:
