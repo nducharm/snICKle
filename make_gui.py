@@ -267,6 +267,7 @@ class GUI:
 
         self.audio_signal = reduced_dim
         self._plot_waveform()
+        self._plot_dft()
     
     def _play(self) -> None:
         """Play back recorded signal. 
@@ -307,7 +308,9 @@ class GUI:
         ax.plot(freq, audio_signalft, color='green')
         self.freq_display.draw()
 
-
+    ###################################################################
+    # Wrapper methods for driving filter_library functions with Tk 
+    # buttons.
 
     def _delay(self) -> None:
         """Apply a delay or echo effect to audio_signal.
@@ -321,6 +324,7 @@ class GUI:
         )
         self.audio_signal = delayed
         self._plot_waveform()
+        self._plot_dft()
 
     def _reverb(self) -> None:
         """Apply a reverb effect to audio_signal.
@@ -332,7 +336,8 @@ class GUI:
             self.audio_signal, echoes=10, delay=0.1
         )
         self.audio_signal = reverbed
-        self._plot_waveform
+        self._plot_waveform()
+        self._plot_dft()
 
     def _flanger(self) -> None:
         """Apply a flanger effect to audio_signal.
@@ -346,3 +351,4 @@ class GUI:
         )
         self.audio_signal = flanged
         self._plot_waveform()
+        self._plot_dft()
