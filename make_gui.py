@@ -207,6 +207,51 @@ class GUI:
 
         flanger_frame.pack()
 
+        # Labeled subframe for phaser.
+        phaser_frame = ttk.LabelFrame(
+            effects_frame, text='Phaser'
+        )
+
+        phaser_button = tk.Button(
+            phaser_frame, text='Apply Effect', command=self._phaser
+        )
+        phaser_button.pack()
+
+        self.phaser_shift = tk.DoubleVar()
+        phaser_shift_slider = tk.Scale(
+            phaser_frame, from_=-1, to=1, resolution=0.1,
+            variable=self.phaser_shift, orient='horizontal',
+            label='shift'
+        )
+        phaser_shift_slider.pack()
+
+        phaser_frame.pack()
+
+        # Labeled subframe for chorus.
+        chorus_frame = ttk.LabelFrame(
+            effects_frame, text='Chorus'
+        )
+
+        chorus_button = tk.Button(
+            chorus_frame, text='Apply Effect', command=self._chorus
+        )
+        chorus_button.pack()
+
+        self.chorus_copies = tk.IntVar()
+        copies_slider = tk.Scale(
+            chorus_frame, from_=1, to=10, variable=self.chorus_copies,
+            orient='horizontal', label='Copies'
+        )
+        copies_slider.pack()
+
+        self.chorus_shift = tk.IntVar()
+        chorus_shift_slider = tk.Scale(
+            chorus_frame, to=33, orient='horizontal', label='Shift'
+        )
+        chorus_shift_slider.pack()
+
+        chorus_frame.pack()
+
         effects_frame.place(relx=0.34, rely=0)
 
 
@@ -368,5 +413,28 @@ class GUI:
             self.flange_sweep.get(), shape=self.flange_shape.get()
         )
         self.audio_signal = flanged
+        self._plot_waveform()
+        self._plot_dft()
+
+    def _phaser(self) -> None:
+        """Apply phaser effect.
+        
+        """
+        phased = filter_library.phaser_effect(
+            self.audio_signal, self.phaser_shift.get()
+        )
+        self.audio_signal = phased
+        self._plot_waveform()
+        self._plot_dft()
+
+    def _chorus(self) -> None:
+        """Apply chorus effect.
+        
+        """
+        chorused = filter_library.chorus_effect(
+            self.audio_signal, self.chorus_copies.get(),
+            self.chorus_shift.get()
+        )
+        self.audio_signal = chorused
         self._plot_waveform()
         self._plot_dft()
