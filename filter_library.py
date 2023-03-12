@@ -3,6 +3,7 @@ import math
 import numpy as np
 
 from scipy import signal
+from scipy.fft import fft, ifft
 
 def _trim_convolution(audioin: np.ndarray) -> np.ndarray:
     """Trim off the back half of an array.
@@ -152,6 +153,43 @@ def flanger_effect(
             audioout[j] = audioin[j] + audioin[j - int(delay_wave[j])]
 
     return audioout
-        
+
+def phaser_effect(
+        audioin: np.ndarray, shift: int, **parameters
+    ) -> np.ndarray:
+    """Overlap a signal with a time-varying phase-shifted copy.
+    
+    """
+    return (audioin + ifft(fft(audioin) + shift).real) / 2
+
+def chorus_effect(
+        audioin: np.ndarray, num_copies: int, shift: float, 
+        samplerate: int = 44_100, **parameters
+    ) -> np.ndarray:
+    """Overlap a signal with slightly phase-offset copies.
+    
+    """
+    # Get the DFT of audioin.
+    audiodft = fft(audioin)
+
+    # Generate and add phase-shifted copies.
+    audioout = audioin / num_copies
+    for k in range(1, num_copies):
+        # If else block alternates between positive and negative phase
+        # shifts.
+        if k % 2 == 0:
+            phase_shifted = k * shift + audiodft / num_copies
+        else:
+            phase_shifted = -k * shift + audiodft / num_copies
+
+        audioout = audioout + ifft(phase_shifted).real
+    
+    # Might sound better to draw the shifts randomly from a Gaussian
+    # whose mean and sd can be controlled via parameters.
+    # If I implement both determinisic and stochastic modes of deter-
+    # mining the shifts, this could be a good chance to practice
+    # handling optional kwargs.
+
+    return audioout
 
 # todo: phaser, chorus, treble, bass, midrange
