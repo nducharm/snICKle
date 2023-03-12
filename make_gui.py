@@ -296,10 +296,20 @@ class GUI:
         """Graph the DFT of audio_signal.
         
         Plots the amplitude portion of the amplitude-phase form of the
-        DFT on the figure canvas.
+        DFT on the figure canvas, only positive frequencies.
         """
-        audio_signalft = fftshift(fft(self.audio_signal))
-        freq = fftshift(fftfreq(self.times.shape[-1]))
+        audio_signalft_long = np.abs(fftshift(fft(self.audio_signal)))
+        freq_long = fftshift(fftfreq(self.times.shape[-1]))
+
+        length = len(self.audio_signal) // 10
+
+        # Trim dft and frequncies so only positive frequencies are
+        # displayed.
+        audio_signalft = np.zeros(2 * length)
+        freq = np.zeros(2 * length)
+        for k in range(2 * length):
+            audio_signalft[k] = audio_signalft_long[5 * length + k]
+            freq[k] = freq_long[5 * length + k]
 
         self.fig_freq.clear()
         ax = self.fig_freq.add_subplot(111)
