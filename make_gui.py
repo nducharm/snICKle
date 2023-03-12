@@ -36,16 +36,48 @@ class GUI:
         # Intialize audio_signal attribute as the 0 function.
         self.audio_signal = np.zeros(self.duration.get() * sampling_rate)
 
-        # Plot waveform of recorded audio_signal.
-        self.fig = plt.figure()
-        # self._set_pyplot_params()
-        # Create figure canvas for displaying matplotlib output.
-        self.display = FigureCanvasTkAgg(self.fig, master=self.root)
-        # Create and pack a widget for the figure canvas.
-        self.display.get_tk_widget().place(
-            anchor='nw',
+        # Figures to hold f and F[f].
+        self.fig_time = plt.figure()
+        self.fig_freq = plt.figure()
+
+        ###############################################################
+        # Create notebook widget for time and frequency domain waveform
+        # graphs.
+
+        graph_notebook = ttk.Notebook(
+            self.root
         )
+
+        # Time domain canvas.
+        canvas_frame_time = tk.Frame(
+            graph_notebook
+        )
+        self.time_display = FigureCanvasTkAgg(
+            self.fig_time, master=canvas_frame_time
+            )
+        self.time_display.get_tk_widget().pack()
+        canvas_frame_time.pack()
+
+        # Frequency domain canvas.
+        canvas_frame_freq = tk.Frame(
+            graph_notebook
+        )
+        self.freq_display = FigureCanvasTkAgg(
+            self.fig_freq, master = canvas_frame_freq
+        )
+        self.freq_display.get_tk_widget().pack()
+        canvas_frame_freq.pack()
+
+        graph_notebook.add(canvas_frame_time, text='Time Domain')
+        graph_notebook.add(canvas_frame_freq, text='Frequency Domain')
+        
+        graph_notebook.place(
+            anchor='nw'
+        )
+
+        # Graph f and F[f] on the canvas(es).
         self._plot_waveform()
+        self._plot_dft()
         
         ###############################################################
         # Frame for recording and playback related widgets.
@@ -252,32 +284,30 @@ class GUI:
         Clear existing axes and create a new axes object populated by a
         graph of the current audio_signal.
         """
-        self.fig.clear()
-        ax = self.fig.add_subplot(111)
+        self.fig_time.clear()
+        ax = self.fig_time.add_subplot(111)
         ax.set_title('Signal, Time Domain')
 
-        ax.plot(self.times, self.audio_signal, color="orange")
-        self.display.draw()
+        ax.plot(self.times, self.audio_signal, color='orange')
+        self.time_display.draw()
 
-    # def _fourier_transform(self) -> None:
-    #     """Display DFT of `self.audio_signal` on the figure canvas.
+    def _plot_dft(self) -> None:
+        """Graph the DFT of audio_signal.
         
-    #     Plots the amplitude portion of the amplitude-phase form of the
-    #     DFT on the figure canvas.
-    #     """
-    #     self.ax.set_title('Signal, Frequency Domain')
+        Plots the amplitude portion of the amplitude-phase form of the
+        DFT on the figure canvas.
+        """
+        audio_signalft = fftshift(fft(self.audio_signal))
+        freq = fftshift(fftfreq(self.times.shape[-1]))
 
-    #     audio_signalft = fftshift(fft(self.audio_signal))
-    #     freq = fftshift(fftfreq(self.times.shape[-1]))
+        self.fig_freq.clear()
+        ax = self.fig_freq.add_subplot(111)
+        ax.set_title('Signal, Frequency Domain')
 
-    #     # Calling `_plot_waveform` here would cause trouble because we
-    #     # would have to overwrite `self.audio_signal` and `self.times`.
-    #     # Instead we change the x and y data in `self.waveform` again
-    #     # without touching any attributes we don't want to overwrite. 
-    #     waveform_line = self.waveform[0]
-    #     waveform_line.set_xdata(freq)
-    #     waveform_line.set_ydata(audio_signalft.real)
-    #     self.display.draw()
+        ax.plot(freq, audio_signalft, color='green')
+        self.freq_display.draw()
+
+
 
     def _delay(self) -> None:
         """Apply a delay or echo effect to audio_signal.
