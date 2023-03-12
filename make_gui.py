@@ -296,15 +296,23 @@ class GUI:
         """Graph the DFT of audio_signal.
         
         Plots the amplitude portion of the amplitude-phase form of the
-        DFT on the figure canvas, only positive frequencies.
+        DFT on the figure canvas, only positive frequencies up to a
+        reasonable limit of 9kHz (roughly conforming with the wideband
+        or 'high-quality' telephone standard of 7kHz). This means you
+        won't see harmonics of notes in the high midrange appear on
+        the DFT graph, but these would be so low amplitude that you
+        wouldn't be able to see them even if we did include them in
+        the displayed band.
         """
+        # Untrimmed DFT and frequency band (positive and negative
+        # frequencies up to the Nyquist limit).
         audio_signalft_long = np.abs(fftshift(fft(self.audio_signal)))
         freq_long = fftshift(fftfreq(self.times.shape[-1]))
 
         length = len(self.audio_signal) // 10
 
-        # Trim dft and frequncies so only positive frequencies are
-        # displayed.
+        # Trim DFT and frequencies so only positive frequencies up
+        # to 1/5 the sampling rate are shown.
         audio_signalft = np.zeros(2 * length)
         freq = np.zeros(2 * length)
         for k in range(2 * length):
