@@ -1,8 +1,11 @@
 # snICKle
 > Working title.
 
-snICKle is a digital guitar amp and pedal simulator currently in the prototype stage. The purpose of this tool is to allow the user to record a snippet of electric guitar signal and experiment with different effects and effect parameters to test out and recreate a variety of guitar tones.
+I like to mess around with guitar tones. But, as an only-recently-reformed grad student, I don't have the funds to build up a library of different guitars, pedals, amps and amp modelers. Lucky for me, digital signal processing is the exact type of thing that the mathematics I spent the two years learning is good for in the real world! So I decided to make my own, (extremely scuffed) amp modeling software. This is that.
 
-## Install
+For now, what you can do with the snICKle is:
+1. Record a snippet of sound;
+2. Apply some standard effects to your recording (the kind of effects you would be likely to find on a starter combo amp);
+3. Play back the filtered sound to see what it sounds like.
 
-For now, I strongly suspect that this project will only run on my machine due to the mess I've made of its dependencies. I will be looking to address this soon...
+I'll gradually be adding more effects as I figure out how to model them digitally, and I have some more ambitious ideas for the project that may materialize a ways down the line.
