@@ -237,12 +237,12 @@ class GUI:
         )
         chorus_button.pack()
 
-        self.chorus_copies = tk.IntVar()
-        copies_slider = tk.Scale(
-            chorus_frame, from_=1, to=10, variable=self.chorus_copies,
+        self.chorus_voices = tk.IntVar()
+        voices_slider = tk.Scale(
+            chorus_frame, from_=1, to=10, variable=self.chorus_voices,
             orient='horizontal', label='Copies'
         )
-        copies_slider.pack()
+        voices_slider.pack()
 
         self.chorus_shift = tk.IntVar()
         chorus_shift_slider = tk.Scale(
@@ -373,14 +373,13 @@ class GUI:
 
     ###################################################################
     # Wrapper methods for driving filter_library functions with Tk 
-    # buttons.
+    # buttons. All methods hereafter just call one similarly named
+    # filter_library function and re-plot the waveform and DFT of 
+    # self.audio_signal, so they're only documented with one line
+    # docstrings unless they break this pattern. 
 
     def _delay(self) -> None:
-        """Apply a delay or echo effect to audio_signal.
-        
-        Calls the appropriate function from the filter library and match
-        it with the relevant parameters set in the GUI.
-        """
+        """Apply delay or echo effect to audio_signal."""
         delayed = filter_library.delay_effect(
             self.audio_signal, echoes=self.num_echoes.get(),
             delay=self.len_delay.get()
@@ -390,7 +389,7 @@ class GUI:
         self._plot_dft()
 
     def _reverb(self) -> None:
-        """Apply a reverb effect to audio_signal.
+        """Apply reverb effect to audio_signal.
         
         Calls the delay function from filter library with parameters tuned
         differently to the _delay method.
@@ -403,11 +402,7 @@ class GUI:
         self._plot_dft()
 
     def _flanger(self) -> None:
-        """Apply a flanger effect to audio_signal.
-
-        Call the appropriate function from the filter library and match
-        it with the relevant parameters set in the GUI.
-        """
+        """Apply flanger effect to audio_signal."""
         flanged = filter_library.flanger_effect(
             self.audio_signal, self.flange_depth.get(), 
             self.flange_sweep.get(), shape=self.flange_shape.get()
@@ -416,25 +411,21 @@ class GUI:
         self._plot_waveform()
         self._plot_dft()
 
+    def _chorus(self) -> None:
+        """Apply chorus effect to audio_signal."""
+        chorused = filter_library.chorus_effect(
+            audioin=self.audio_signal, voices=self.chorus_voices.get(),
+            mode='gaussian', depth=0.03, sweepmean=0.2, sweepsd=0.02
+        )
+        self.audio_signal = chorused
+        self._plot_waveform()
+        self._plot_dft()
+
     def _phaser(self) -> None:
-        """Apply phaser effect.
-        
-        """
+        """Apply phaser effect to audio_signal."""
         phased = filter_library.phaser_effect(
             self.audio_signal, self.phaser_shift.get()
         )
         self.audio_signal = phased
-        self._plot_waveform()
-        self._plot_dft()
-
-    def _chorus(self) -> None:
-        """Apply chorus effect.
-        
-        """
-        chorused = filter_library.chorus_effect(
-            self.audio_signal, self.chorus_copies.get(),
-            self.chorus_shift.get()
-        )
-        self.audio_signal = chorused
         self._plot_waveform()
         self._plot_dft()

@@ -11,8 +11,8 @@ def _trim_convolution(audioin: np.ndarray) -> np.ndarray:
     When you convolve two n-point arrays the result is a single (2n-1)
     point array. For delay effects, if you want to keep the duration
     of the audio signal the same, you need to retain the first n points
-    of the resulting signal rather. This helper function trims a 2n-1
-    point array, keeping only the first n points.
+    of the resulting signal. Thuslywise, this helper function trims a 
+    (2n-1) point array, keeping only the first n points.
 
     Parameters
     ----------
@@ -43,7 +43,7 @@ def delay_effect(
     that has been attenuated by a sharp decay function. To keep the
     operation from increasing (read: doubling) the duration, the result
     of the convolution is pruned back to the first n points using the
-    `_trim_convolution` helper function.
+    _trim_convolution helper function.
 
     Parameters
     ----------
@@ -81,15 +81,79 @@ def delay_effect(
 
     return audioout
 
+def _low_frequency_oscillator(
+        amplitude: float, freq: float, shape: str, length: int,
+        samplerate: int = 44_100 
+    ) -> np.ndarray:
+    """Generate a low frequency oscillator.
+    
+    Generate a wave, one of three types: sawtooth, triangle or sine.
+    The oscillator should output a sample number, since it will be used
+    to delay signals (so you can think of the output as being time, 
+    which we then convert to samples). This is a helper function for 
+    both the flanger and chorus effects.
+
+    Parameters
+    ----------
+    amplitude: float
+        Amplitude of the oscillator.
+
+    freq:
+        Frequency of the oscillator.
+
+    shape:
+        Type of oscillator. 'sin', 'triangle' or 'saw'.
+
+    length:
+        Number of samples in the oscillator.
+
+    samplerate:
+        A sampling rate determining the conversion rate from samples
+        (length) to seconds.
+
+    Return
+    ------
+    np.ndarray
+        The infamous oscillator.
+    """
+    # Input sanitization for shape parameter.
+    shapes = ['triangle', 'sin', 'saw']
+    if shape not in shapes:
+        raise ValueError(
+            'Invalid shape. Expected "triangle", "sin" or "saw".'
+        )
+
+    # LFO should output a sample number, so convert amplitude to a
+    # sample number.
+    amplitude = math.floor(amplitude * samplerate)
+
+    # Generate the LFO.
+    sampletimes = np.linspace(0, length // samplerate, length)
+    if shape == 'triangle':
+        lfo = amplitude + amplitude * signal.sawtooth(
+            2 * np.pi * sampletimes * freq, 0.5
+        )
+    elif shape == 'saw':
+        lfo = amplitude + amplitude * signal.sawtooth(
+            2 * np.pi * sampletimes * freq
+        )
+    elif shape == 'sin':
+        lfo = amplitude + amplitude * np.sin(
+            2 * np.pi * sampletimes * freq
+        )
+    
+    return lfo
+
 def flanger_effect(
-        audioin: np.ndarray, depth: float, sweep: float = 1,
-        samplerate: int = 44_100, shape: str = 'triangle'
+        audioin: np.ndarray, depth: float, sweep: float,
+        shape: str = 'triangle'
     ) -> np.ndarray :
     """Overlap a signal with a time-varying delayed copy.
     
     A flanger is a delay that varies with time according to some 
-    low-frequency wave. The output should look like y[n] = x[n] + 
-    x[n - M[n]] where M[n] is the time varying delay parameter.
+    low-frequency oscillator (LFO) M[n]. The output should look like
+    y[n] = x[n] + x[n - M[n]]. M[n] is constructed with the
+    _low_frequency_oscillator helper function.
 
     Parameters
     ----------
@@ -102,94 +166,127 @@ def flanger_effect(
     sweep: float
         Frequency of M[n].
 
+    shape: str
+        The type of oscillator M[n] will be. May be 'triangle', 'sin'
+        or 'saw'.
+
     samplerate: int
         The sampling rate in Hz of the input signal.
-
-    shape: str
-        The type of function M[n] will be. May be 'triangle', 'sin' or
-        'saw'.
 
     Returns
     -------
     np.ndarray
-        x[n] + x[n - M[n]]
+        y[n] = x[n] + x[n - M[n]]
     """
-    # Input sanitization for shape.
-    shapes = ['triangle', 'sin', 'saw']
-    if shape not in shapes:
-        raise ValueError('Invalid shape. Expected "triangle", "sin" or "saw".')
-
-    # Convert depth from seconds into samples.
-    depth= math.floor(depth * samplerate)
-
     length = len(audioin)
-    sampletimes = np.linspace(0, length // samplerate, length)
-    
-    # Generate the delay wave.
-    if shape == 'triangle':
-        delay_wave = depth + depth * signal.sawtooth(
-            2 * np.pi * sampletimes * sweep, 0.5
-        )
-    elif shape == 'saw':
-        delay_wave = depth + depth * signal.sawtooth(
-            2 * np.pi * sampletimes * sweep
-        )
-    elif shape == 'sin':
-        delay_wave = depth + depth * np.sin(
-            2 * np.pi * sampletimes * sweep
-        )
+
+    # Call helper function to build M[n].
+    delay_lfo = _low_frequency_oscillator(depth, sweep, shape, length)
 
     # At each index j, the signal out should be x[j] + x[j - M[j]].
     audioout = np.zeros(length)
     for j in range(length):
-        # If-elif-else block handles out of bounds.
-        if j - delay_wave[j] < 0:
+        # If-else block handles out of bounds.
+        if j - delay_lfo[j] < 0:
             audioout[j] = audioin[j] + audioin[0]
-        # Pretty sure this isn't possible, can remove this elif clause.
-        elif j - delay_wave[j] >= length:
-            audioout[j] = audioin[j] + audioin[length - 1]
         else:
-            # delay_wave is currently integer values stored as floats.
-            audioout[j] = audioin[j] + audioin[j - int(delay_wave[j])]
+            # delay_lfo is currently integer values stored as floats.
+            audioout[j] = audioin[j] + audioin[j - int(delay_lfo[j])]
+
+    return audioout
+
+def chorus_effect(
+        audioin: np.ndarray, voices: int, mode: str, depth: float, 
+        shape: str = 'triangle', **sweepargs
+    ) -> np.ndarray:
+    """Overlap a signal with flanged copies.
+    
+    Produces the effect of multiple sources of sound, all mutually
+    slightly out of sync pitch-wise. The output may be written
+    y[n] = 1/N(x[n] + x[n - M_1[n]] + ... + x[n - M_N[n]]) where N
+    is the number of copies of x[n] (voices) and M_j[n] is the j-th 
+    LFO used to modulate the phase of x[n]. Again the LFOs are built
+    using the _low_frequency_oscillator helper function.
+
+    Parameters
+    ----------
+
+    audioin: np.ndarray
+        Audio input, x[n].
+
+    voices: int
+        N, the number of modulated copies of the signal.
+
+    mode: str
+        'deterministic' or 'gaussian'. Determines how the sweep of the
+        LFOs are generated -- 'deterministic' gives sweeps that are
+        multiples of a base sweep, 'gaussian' draws sweeps randomly
+        from a Gaussian distribution.
+
+    maxsweep: float
+        'deterministic' parameter, determines the base shift.
+
+    sweepmean: float
+        'gaussian' parameter, determines the mean of the Gaussian to be
+        sampled from.
+
+    sweepsd: float
+        'gaussian' parameter, determines the std dev of the Gaussian to
+        be sampled from.
+
+    depth: float
+        Shared amplitude of the LFOs.
+
+    shape: str
+        Type of oscillator the LFOs will be. 'sin', 'triangle', 'saw'.
+
+    Returns
+    -------
+    np.ndarray
+        y[n] = 1/N(x[n] + x[n - M_1[n]] + ... + x[n - M_N[n]])
+    """
+    # Input sanitization for mode parameter.
+    modes = ['deterministic', 'gaussian']
+    if mode not in modes:
+        raise ValueError('Invalid mode. Expected "deterministic" or "gaussian".')
+
+    if mode == 'deterministic':
+        # Fetch kwargs.
+        maxsweep = sweepargs['maxsweep']
+        # Build vector of sweeps.
+        sweep_vector = np.linspace(0, maxsweep, voices)
+    elif mode == 'gaussian':
+        # Fetch kwargs.
+        sweepmean, sweepsd = sweepargs['sweepmean'], sweepargs['sweepsd']
+        sweep_vector = np.random.normal(sweepmean, sweepsd, voices)
+
+    # Build LFOs and add them to output.
+    length = len(audioin)
+    lfo_vector = [None] * voices
+    for k, sweep in enumerate(sweep_vector):
+        lfo_vector[k] = _low_frequency_oscillator(
+            depth, sweep, shape, length
+        )
+
+    audioout = np.zeros(length)
+
+    # Might be worth packaging this up as a helper function.
+    for lfo in lfo_vector:
+        for j in range(length):
+            if j - lfo[j] < 0:
+                audioout[j] = audioin[j] + audioin[0]
+            else:
+                audioout[j] = audioin[j] + audioin[j - int(lfo[j])]
 
     return audioout
 
 def phaser_effect(
         audioin: np.ndarray, shift: int, **parameters
     ) -> np.ndarray:
-    """Overlap a signal with a time-varying phase-shifted copy.
-    
-    """
-    return (audioin + ifft(fft(audioin) + shift).real) / 2
+    """Phase shift certain frequency bands."""
+    # Bank frequency bands and phase shift band proportionally to the
+    # maximum frequency in each band. Run this process across multiple
+    # layers of filtering, 1 to 32.
+    return
 
-def chorus_effect(
-        audioin: np.ndarray, num_copies: int, shift: float, 
-        samplerate: int = 44_100, **parameters
-    ) -> np.ndarray:
-    """Overlap a signal with slightly phase-offset copies.
-    
-    """
-    # Get the DFT of audioin.
-    audiodft = fft(audioin)
-
-    # Generate and add phase-shifted copies.
-    audioout = audioin / num_copies
-    for k in range(1, num_copies):
-        # If else block alternates between positive and negative phase
-        # shifts.
-        if k % 2 == 0:
-            phase_shifted = k * shift + audiodft / num_copies
-        else:
-            phase_shifted = -k * shift + audiodft / num_copies
-
-        audioout = audioout + ifft(phase_shifted).real
-    
-    # Might sound better to draw the shifts randomly from a Gaussian
-    # whose mean and sd can be controlled via parameters.
-    # If I implement both determinisic and stochastic modes of deter-
-    # mining the shifts, this could be a good chance to practice
-    # handling optional kwargs.
-
-    return audioout
-
-# todo: phaser, chorus, treble, bass, midrange
+# todo: phaser, treble, bass, midrange
