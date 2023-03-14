@@ -1,5 +1,7 @@
 import numpy as np
 
+import matplotlib as plt
+
 import tkinter as tk
 from tkinter import ttk
 
@@ -15,7 +17,11 @@ class SignalData():
         )
         self.signal = signal
 
-        # Might put _plot functions here?
+        self.fig_time = plt.figure()
+        self.fig_freq = plt.figure()
+
+    def plot_waveform(self) -> None:
+        pass
 
 
 class GUI():
