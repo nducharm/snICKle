@@ -20,9 +20,6 @@ class SignalData():
         self.fig_time = plt.figure()
         self.fig_freq = plt.figure()
 
-    def plot_waveform(self) -> None:
-        pass
-
 
 class GUI():
     def __init__(self, signalobj) -> None:
@@ -57,11 +54,15 @@ class Canvas():
 
         # Canvas notebook code goes here.
 
-    # Plotting methods belong here.
+    def plot_waveform(self) -> None:
+        pass
+
+    def plot_dft(self) -> None:
+        pass
 
 
 class Ribbon():
-    def __init__(self, signalobj, parent) -> None:
+    def __init__(self, signalobj, canvasobj, parent) -> None:
         self.signalobj = signalobj
 
         frame = tk.Frame(
@@ -111,6 +112,8 @@ class Ribbon():
             reduced_dim[j] = audio_signal_in[j][0]
 
         self.signalobj.signal = reduced_dim
+        self.signalobj.plot_waveform()
+        self.signalobj.plot_dft()
 
 
 # Classes for individual effects?
